@@ -37,6 +37,12 @@ namespace UserRoles.Controllers
             return View();
         }
 
+        [Authorize(Roles = "Manager")]
+        public IActionResult Manager()
+        {
+            return View();
+        }
+
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

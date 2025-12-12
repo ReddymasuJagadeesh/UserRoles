@@ -1,7 +1,4 @@
-﻿@using UserRoles.Models
-@inject Microsoft.AspNetCore.Identity.UserManager<Users> UserManager
-
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -11,19 +8,6 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/UserRoles.styles.css" asp-append-version="true" />
-    <style>
-        /* small style to make the display name align with nav items */
-        .nav-display-name .nav-link {
-            cursor: default;
-            color: rgba(0,0,0,.55);
-            padding-top: .375rem;
-            padding-bottom: .375rem;
-        }
-
-            .nav-display-name .nav-link strong {
-                color: rgba(0,0,0,.85);
-            }
-    </style>
 </head>
 <body>
     <header>
@@ -35,28 +19,13 @@
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1 align-items-center">
+                    <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
-
-                        @* Display the logged-in user's name on the left (non-clickable). Users link removed. *@
-                        @if (User.Identity.IsAuthenticated)
-                        {
-                            <li class="nav-item nav-display-name">
-                                @{
-                                    var currentUser = await UserManager.GetUserAsync(User);
-                                    var displayName = currentUser?.FirstName;
-                                    if (string.IsNullOrWhiteSpace(displayName))
-                                    {
-                                        displayName = currentUser?.Email ?? User.Identity.Name ?? "User";
-                                    }
-                                }
-                                <a class="nav-link" role="button"> <strong>@displayName</strong></a>
-                            </li>
-                        }
-
-                        @* Role-specific pages (Admin/Manager) remain clickable *@
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                        </li>
                         @if (User.IsInRole("Admin"))
                         {
                             <li class="nav-item">
@@ -69,10 +38,12 @@
                                 <a class="nav-link" asp-controller="Home" asp-action="Manager">Manager</a>
                             </li>
                         }
-
-                        @* Remove the Users clickable link entirely (previously shown for User role). *@
-                        @* If you later want to show an Admin-only user listing, we can add an Admin-only link here. *@
-
+                        @if (User.IsInRole("User"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Home" asp-action="User">Users</a>
+                            </li>
+                        }
                         <partial name="_LoginPartial" />
                     </ul>
                 </div>

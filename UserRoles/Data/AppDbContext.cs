@@ -7,7 +7,11 @@ namespace UserRoles.Data
     {
         public AppDbContext(DbContextOptions options) : base(options)
         {
+            
         }
+        public DbSet<DailyReport> DailyReports { get; set; }
+       
+
 
         protected AppDbContext()
         {

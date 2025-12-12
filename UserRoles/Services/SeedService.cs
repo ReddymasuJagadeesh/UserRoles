@@ -24,15 +24,16 @@ namespace UserRoles.Services
                 logger.LogInformation("Seeding roles.");
                 await AddRoleAsync(roleManager, "Admin");
                 await AddRoleAsync(roleManager, "User");
+                await AddRoleAsync(roleManager, "Manager");
 
                 // Add admin user
                 logger.LogInformation("Seeding admin user.");
-                var adminEmail = "jagadeesh@gmail.com";
+                var adminEmail = "admin@gmail.com";
                 if (await userManager.FindByEmailAsync(adminEmail) == null)
                 {
                     var adminUser = new Users
                     {
-                        FirstName = "Jagadeesh",
+                        FirstName = "Admin",
                         UserName = adminEmail,
                         NormalizedUserName = adminEmail.ToUpper(),
                         Email = adminEmail,
@@ -41,11 +42,39 @@ namespace UserRoles.Services
                         SecurityStamp = Guid.NewGuid().ToString()
                     };
 
-                    var result = await userManager.CreateAsync(adminUser, "Jagadeesh@123");
+                    var result = await userManager.CreateAsync(adminUser, "Admin@123");
                     if (result.Succeeded)
                     {
                         logger.LogInformation("Assigning Admin role to the admin user.");
                         await userManager.AddToRoleAsync(adminUser, "Admin");
+                    }
+                    else
+                    {
+                        logger.LogError("Failed to create admin user: {Errors}", string.Join(", ", result.Errors.Select(e => e.Description)));
+                    }
+                }
+
+                // Add Manager user
+                logger.LogInformation("Seeding Manager user.");
+                var ManagerEmail = "manager@gmail.com";
+                if (await userManager.FindByEmailAsync(ManagerEmail) == null)
+                {
+                    var ManagerUser = new Users
+                    {
+                        FirstName = "Manager",
+                        UserName = ManagerEmail,
+                        NormalizedUserName = ManagerEmail.ToUpper(),
+                        Email = ManagerEmail,
+                        NormalizedEmail = ManagerEmail.ToUpper(),
+                        EmailConfirmed = true,
+                        SecurityStamp = Guid.NewGuid().ToString()
+                    };
+
+                    var result = await userManager.CreateAsync(ManagerUser, "Manager@123");
+                    if (result.Succeeded)
+                    {
+                        logger.LogInformation("Assigning Manager role to the Manager user.");
+                        await userManager.AddToRoleAsync(ManagerUser, "Manager");
                     }
                     else
                     {

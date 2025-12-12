@@ -62,9 +62,7 @@ wwwroot\lib\jquery\dist\jquery.slim.js
 wwwroot\lib\jquery\dist\jquery.slim.min.js
 wwwroot\lib\jquery\dist\jquery.slim.min.map
 wwwroot\lib\jquery\LICENSE.txt
-C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\wwwroot\css\account.css
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\wwwroot\css\site.css
-C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\wwwroot\favicon.ico
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\wwwroot\js\site.js
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css.map
@@ -125,3 +123,5 @@ C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\wwwroot\lib\jquery\dist
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\wwwroot\lib\jquery\dist\jquery.slim.min.js
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\wwwroot\lib\jquery\dist\jquery.slim.min.map
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\wwwroot\lib\jquery\LICENSE.txt
+C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\wwwroot\favicon.ico
+C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\wwwroot\css\account.css

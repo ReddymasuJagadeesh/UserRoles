@@ -200,3 +200,4 @@ C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\refin
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.pdb
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.genruntimeconfig.cache
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\ref\UserRoles.dll
+C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.sourcelink.json

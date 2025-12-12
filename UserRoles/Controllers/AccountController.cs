@@ -13,7 +13,10 @@ namespace UserRoles.Controllers
         private readonly RoleManager<IdentityRole> roleManager;
         private readonly IEmailService emailService;
 
-        public AccountController(SignInManager<Users> signInManager, UserManager<Users> userManager, RoleManager<IdentityRole> roleManager,IEmailService emailService)
+        public AccountController(SignInManager<Users> signInManager,
+                                 UserManager<Users> userManager,
+                                 RoleManager<IdentityRole> roleManager,
+                                 IEmailService emailService)
         {
             this.signInManager = signInManager;
             this.userManager = userManager;
@@ -21,46 +24,72 @@ namespace UserRoles.Controllers
             this.emailService = emailService;
         }
 
+        // ------------------- LOGIN -------------------
+
         [HttpGet]
-        public IActionResult Login()
+        public IActionResult Login(string returnUrl = null)
         {
+            ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model)
+        public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
         {
+            ViewData["ReturnUrl"] = returnUrl;
+
             if (!ModelState.IsValid)
             {
                 return View(model);
             }
 
-            var result = await signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
+            // 🔥 FORCE NON-PERSISTENT COOKIE (session cookie)
+            var result = await signInManager.PasswordSignInAsync(
+                model.Email, model.Password, isPersistent: false, lockoutOnFailure: false);
 
             if (result.Succeeded)
             {
+                // Return where user came from if protected resource redirected them
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                    return Redirect(returnUrl);
+
+                // ROLE-BASED REDIRECT
+                var user = await userManager.FindByEmailAsync(model.Email);
+
+                if (user != null)
+                {
+                    var roles = await userManager.GetRolesAsync(user);
+
+                    if (roles.Contains("Admin"))
+                        return RedirectToAction("Admin", "Home");
+
+                    if (roles.Contains("Manager"))
+                        return RedirectToAction("Manager", "Home");
+
+                    if (roles.Contains("User"))
+                        return RedirectToAction("Index", "Reports");
+                }
+
+                // FALLBACK
                 return RedirectToAction("Index", "Home");
             }
 
-            ModelState.AddModelError(string.Empty, "Invalid Login Attempt.");
+            ModelState.AddModelError("", "Invalid Login Attempt.");
             return View(model);
         }
 
+        // ------------------- REGISTER -------------------
+
         [HttpGet]
-        public IActionResult Register()
-        {
-            return View();
-        }
+        public IActionResult Register() => View();
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
             if (!ModelState.IsValid)
-            {
                 return View(model);
-            }
 
             var user = new Users
             {
@@ -71,80 +100,64 @@ namespace UserRoles.Controllers
                 NormalizedEmail = model.Email.ToUpper()
             };
 
-            var result = await userManager.CreateAsync(user, model.Password);
+            var createResult = await userManager.CreateAsync(user, model.Password);
 
-            if (result.Succeeded)
+            if (createResult.Succeeded)
             {
-                var roleExist = await roleManager.RoleExistsAsync("User");
-
-                if (!roleExist)
-                {
-                    var role = new IdentityRole("User");
-                    await roleManager.CreateAsync(role);
-                }
+                // Ensure User role exists
+                if (!await roleManager.RoleExistsAsync("User"))
+                    await roleManager.CreateAsync(new IdentityRole("User"));
 
                 await userManager.AddToRoleAsync(user, "User");
 
-                await signInManager.SignInAsync(user, isPersistent: false);
+                // After register → redirect to login
                 return RedirectToAction("Login", "Account");
             }
 
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Description);
-            }
+            foreach (var error in createResult.Errors)
+                ModelState.AddModelError("", error.Description);
 
             return View(model);
         }
 
+        // ------------------- PASSWORD RESET -------------------
+
         [HttpGet]
-        public IActionResult VerifyEmail()
-        {
-            return View();
-        }
+        public IActionResult VerifyEmail() => View();
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> VerifyEmail(VerifyEmailViewModel model)
         {
             if (!ModelState.IsValid)
-            {
                 return View(model);
-            }
 
-            var user = await userManager.FindByNameAsync(model.Email);
-            if(user == null)
+            var user = await userManager.FindByEmailAsync(model.Email);
+            if (user == null)
             {
                 ModelState.AddModelError("", "User not found!");
                 return View(model);
             }
 
-            var resettoken = await userManager.GenerateEmailConfirmationTokenAsync(user);
-            var resetlink = Url.Action("ChangePassword", "Account", new { email = model.Email, token = resettoken }, Request.Scheme);
+            var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
 
-            var subject = "Reset Password";
-            var body = $"Click the link to reset your password: {resetlink}";
-            await emailService.SendEmailAsync(model.Email, subject, body);
-            return RedirectToAction("EmailSent", "Account");
+            var link = Url.Action(
+                "ChangePassword", "Account",
+                new { email = model.Email, token = token },
+                Request.Scheme);
 
+            await emailService.SendEmailAsync(model.Email, "Reset Password", $"Click the link: {link}");
+
+            return RedirectToAction("EmailSent");
         }
 
         [HttpGet]
-        public IActionResult ChangePassword(string email,string token)
+        public IActionResult ChangePassword(string email, string token)
         {
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(token))
-            {
-                return RedirectToAction("VerifyEmail", "Account");
-            }
+                return RedirectToAction("VerifyEmail");
 
-            var model = new ChangePasswordViewModel
-            { 
-                Email = email,
-                token = token
-            }; 
-            return View(model);
-
-            
+            return View(new ChangePasswordViewModel { Email = email, token = token });
         }
 
         [HttpPost]
@@ -157,6 +170,7 @@ namespace UserRoles.Controllers
             }
 
             var user = await userManager.FindByEmailAsync(model.Email);
+
             if (user == null)
             {
                 ModelState.AddModelError("", "User not found!");
@@ -164,26 +178,29 @@ namespace UserRoles.Controllers
             }
 
             var resetResult = await userManager.ResetPasswordAsync(user, model.token, model.NewPassword);
+
             if (!resetResult.Succeeded)
             {
                 foreach (var error in resetResult.Errors)
-                {
                     ModelState.AddModelError("", error.Description);
-                }
-
             }
             else
             {
-                return RedirectToAction("Login", "Account");
+                return RedirectToAction("Login");
             }
-                return View(model);
-            
-            
+
+            return View(model);
         }
 
+        // ------------------- MISC -------------------
+
         [HttpGet]
-        public IActionResult EmailSent()
-        { 
+        public IActionResult EmailSent() => View();
+
+        [HttpGet]
+        public IActionResult AccessDenied(string returnUrl = null)
+        {
+            ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
 
