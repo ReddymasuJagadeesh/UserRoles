@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Edit Report";
+    bool isAdminOrManager = User.IsInRole("Admin") || User.IsInRole("Manager");
 }
 
 <h3 class="mb-3">Edit Report</h3>
@@ -12,13 +13,13 @@
         <form asp-action="Edit" method="post">
             @Html.AntiForgeryToken()
 
-            <!-- Hidden Keys -->
+            <!-- Hidden fields -->
             <input type="hidden" asp-for="Id" />
             <input type="hidden" asp-for="ApplicationUserId" />
 
-            <!-- Date (READ ONLY) -->
+            <!-- Date (read-only) -->
             <div class="mb-3">
-                <label class="form-label">Report Date</label>
+                <label class="form-label">Date</label>
                 <input class="form-control"
                        value="@Model.Date.ToString("yyyy-MM-dd")"
                        readonly />
@@ -30,40 +31,32 @@
                 <input asp-for="Task"
                        class="form-control"
                        required />
-                <span asp-validation-for="Task" class="text-danger"></span>
             </div>
 
-            <!-- User Note -->
+            <!-- Note -->
             <div class="mb-3">
-                <label asp-for="Note" class="form-label">User Note</label>
+                <label asp-for="Note" class="form-label"></label>
                 <textarea asp-for="Note"
                           class="form-control"
                           rows="4"
                           required></textarea>
-                <span asp-validation-for="Note" class="text-danger"></span>
             </div>
 
-            <!-- Reviewer Comment (ADMIN / MANAGER) -->
-            <div class="mb-4">
-                <label asp-for="ReviewerComment" class="form-label">
-                    Admin / Manager Comment
-                </label>
-                <textarea asp-for="ReviewerComment"
-                          class="form-control"
-                          rows="3"
-                          placeholder="Add your comment here (optional)">
-                </textarea>
-            </div>
+            <!-- Reviewer Comment (ADMIN / MANAGER ONLY) -->
+            @if (isAdminOrManager)
+            {
+                <div class="mb-4">
+                    <label asp-for="ReviewerComment" class="form-label">
+                        Reviewer Comment
+                    </label>
+                    <textarea asp-for="ReviewerComment"
+                              class="form-control"
+                              rows="4"
+                              placeholder="Add comment for the user..."></textarea>
+                </div>
+            }
 
-            <!-- Reported To (optional edit) -->
-            <div class="mb-4">
-                <label asp-for="ReportedTo" class="form-label"></label>
-                <input asp-for="ReportedTo"
-                       class="form-control"
-                       placeholder="Admin, Manager" />
-            </div>
-
-            <!-- ACTION BUTTONS -->
+            <!-- Action buttons -->
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-success">
                     Save Changes
@@ -81,12 +74,7 @@
                     ← Back to Reports
                 </a>
             </div>
-
         </form>
 
     </div>
 </div>
-
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}

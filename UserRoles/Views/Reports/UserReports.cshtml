@@ -1,4 +1,5 @@
-﻿@model IEnumerable<UserRoles.Models.DailyReport>
+﻿@using System.Security.Claims
+@model IEnumerable<UserRoles.Models.DailyReport>
 
 @{
     ViewData["Title"] = "Reports";
@@ -6,28 +7,41 @@
     DateTime today = ViewBag.Today ?? DateTime.Today;
     bool hasToday = ViewBag.HasToday ?? false;
 
-    bool isUser = User.IsInRole("User");
+    bool canSubmit = User.IsInRole("User") || User.IsInRole("Manager");
     bool canManage = User.IsInRole("Admin") || User.IsInRole("Manager");
+
+    string currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    int? editId = Context.Request.Query.ContainsKey("editId")
+        ? int.Parse(Context.Request.Query["editId"])
+        : null;
 }
 
-<h2 class="mb-4">Reports</h2>
+
+@if (ViewBag.ReportOwnerName != null)
+{
+    <h5 class="text-muted mb-4">
+         <strong>@ViewBag.ReportOwnerName</strong> Reports
+    </h5>
+}
 
 <div class="table-responsive">
     <table class="table table-bordered table-hover align-middle">
         <thead class="table-light">
             <tr>
                 <th style="width:140px;">Date</th>
-                <th style="width:280px;">Task</th>
+                <th style="width:260px;">Task</th>
                 <th>Note</th>
-                <th style="width:180px;">Reported To</th>
+                <th style="width:260px;">Reviewer Comment</th>
+                <th style="width:160px;">Reported To</th>
                 <th style="width:220px;" class="text-center">Actions</th>
             </tr>
         </thead>
 
         <tbody>
 
-            <!-- ================= SUBMIT TODAY (USER ONLY) ================= -->
-            @if (isUser && !hasToday)
+            <!-- ================= SUBMIT TODAY (USER + MANAGER) ================= -->
+            @if (canSubmit && !hasToday)
             {
                 <tr class="table-success">
                     <td>
@@ -51,17 +65,16 @@
                                required />
                     </td>
 
+                    <td class="text-muted">—</td>
+
                     <td>
                         <div class="form-check">
                             <input class="form-check-input"
                                    form="todayForm"
                                    type="checkbox"
                                    name="ReportedTo"
-                                   value="Manager"
-                                   id="managerCheck" />
-                            <label class="form-check-label" for="managerCheck">
-                                Manager
-                            </label>
+                                   value="Manager" />
+                            <label class="form-check-label">Manager</label>
                         </div>
 
                         <div class="form-check">
@@ -69,21 +82,17 @@
                                    form="todayForm"
                                    type="checkbox"
                                    name="ReportedTo"
-                                   value="Admin"
-                                   id="adminCheck" />
-                            <label class="form-check-label" for="adminCheck">
-                                Admin
-                            </label>
+                                   value="Admin" />
+                            <label class="form-check-label">Admin</label>
                         </div>
                     </td>
 
                     <td class="text-center">
                         <form id="todayForm"
                               asp-action="CreateToday"
-                              method="post"
-                              class="d-inline">
+                              method="post">
                             @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-success btn-sm">
+                            <button class="btn btn-success btn-sm">
                                 Submit
                             </button>
                         </form>
@@ -96,55 +105,104 @@
             {
                 foreach (var r in Model)
                 {
+                    bool canEditThisRow =
+                    canManage && r.ApplicationUserId != currentUserId;
+
+                    bool isEditing = canEditThisRow && editId == r.Id;
+
                     <tr>
-                        <td>@r.Date.ToString("yyyy-MM-dd")</td>
-                        <td>@r.Task</td>
+                        @if (isEditing)
+                        {
+                            <form asp-action="InlineUpdate" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@r.Id" />
 
-                        <td style="white-space: normal; word-break: break-word;">
-                            @r.Note
-                        </td>
+                            <td>@r.Date.ToString("yyyy-MM-dd")</td>
 
-                        <td class="text-center">@r.ReportedTo</td>
+                            <td>
+                                <input name="task"
+                                       value="@r.Task"
+                                       class="form-control form-control-sm"
+                                       required />
+                            </td>
 
-                        <!-- ✅ ACTION BUTTONS IN SAME LINE -->
-                        <td class="text-center">
-                            <div class="d-inline-flex gap-2">
-                                <a asp-action="Details"
-                                   asp-route-id="@r.Id"
-                                   class="btn btn-info btn-sm">
-                                    Details
-                                </a>
+                            <td>
+                                <input name="note"
+                                       value="@r.Note"
+                                       class="form-control form-control-sm"
+                                       required />
+                            </td>
 
-                                @if (canManage)
-                                {
-                                    <a asp-action="Edit"
+                            <td>
+                                <input name="reviewerComment"
+                                       value="@r.ReviewerComment"
+                                       class="form-control form-control-sm"
+                                       placeholder="Reviewer comment" />
+                            </td>
+
+                            <td>@r.ReportedTo</td>
+
+                            <td class="text-center">
+                                <div class="d-inline-flex gap-2">
+                                    <button class="btn btn-success btn-sm">
+                                        Save
+                                    </button>
+
+                                    <a asp-action="UserReports"
+                                       asp-route-userId="@r.ApplicationUserId"
+                                       class="btn btn-secondary btn-sm">
+                                        Cancel
+                                    </a>
+                                </div>
+                            </td>
+                            </form>
+                        }
+                        else
+                        {
+                            <td>@r.Date.ToString("yyyy-MM-dd")</td>
+                            <td>@r.Task</td>
+                            <td>@r.Note</td>
+                            <td class="text-muted">@r.ReviewerComment</td>
+                            <td>@r.ReportedTo</td>
+
+                            <td class="text-center">
+                                <div class="d-inline-flex gap-2">
+                                    <a asp-action="Details"
                                        asp-route-id="@r.Id"
-                                       class="btn btn-warning btn-sm">
-                                        Edit
+                                       class="btn btn-info btn-sm">
+                                        Details
                                     </a>
 
-                                    <form asp-action="Delete"
-                                          asp-route-id="@r.Id"
-                                          method="post"
-                                          class="d-inline">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit"
-                                                class="btn btn-danger btn-sm"
-                                                onclick="return confirm('Delete this report?');">
-                                            Delete
-                                        </button>
-                                    </form>
-                                }
-                            </div>
-                        </td>
+                                    @if (canEditThisRow)
+                                    {
+                                        <a asp-action="UserReports"
+                                           asp-route-userId="@r.ApplicationUserId"
+                                           asp-route-editId="@r.Id"
+                                           class="btn btn-warning btn-sm">
+                                            Edit
+                                        </a>
 
+                                        <form asp-action="Delete"
+                                              asp-route-id="@r.Id"
+                                              method="post"
+                                              class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button class="btn btn-danger btn-sm"
+                                                    onclick="return confirm('Delete this report?');">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        }
                     </tr>
                 }
             }
             else
             {
                 <tr>
-                    <td colspan="5" class="text-center text-muted py-3">
+                    <td colspan="6" class="text-center text-muted py-3">
                         No reports available.
                     </td>
                 </tr>

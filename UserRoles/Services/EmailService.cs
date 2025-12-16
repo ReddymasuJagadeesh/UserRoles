@@ -1,6 +1,4 @@
-﻿
-using Microsoft.AspNetCore.Cors;
-using System.Net;
+﻿using System.Net;
 using System.Net.Mail;
 
 namespace UserRoles.Services
@@ -14,24 +12,31 @@ namespace UserRoles.Services
             _configuration = configuration;
         }
 
-        public async Task SendEmailAsync(string toEmail, string subject, string body)
+        public async Task SendEmailAsync(string toEmail, string subject, string message)
         {
             var from = _configuration["EmailSettings:From"];
             var smtpServer = _configuration["EmailSettings:SmtpServer"];
-            var Port = int.Parse(_configuration["EmailSettings:Port"]!);
-            var Username = _configuration["EmailSettings:Username"];
-            var Password = _configuration["EmailSettings:Password"];
+            var port = int.Parse(_configuration["EmailSettings:Port"]!);
+            var username = _configuration["EmailSettings:Username"];
+            var password = _configuration["EmailSettings:Password"];
 
-            var message = new MailMessage(from!, toEmail, subject, body);
-            var isBodyHtml = true;
-
-            using  var client = new SmtpClient(smtpServer, Port);
+            var mailMessage = new MailMessage
             {
-                client.Credentials = new NetworkCredential(Username, Password);
-                client.EnableSsl = true;    
-                
-            }
-            await client.SendMailAsync(message);
+                From = new MailAddress(from!),
+                Subject = subject,
+                Body = message,
+                IsBodyHtml = true
+            };
+
+            mailMessage.To.Add(toEmail);
+
+            using var client = new SmtpClient(smtpServer, port)
+            {
+                Credentials = new NetworkCredential(username, password),
+                EnableSsl = true
+            };
+
+            await client.SendMailAsync(mailMessage);
         }
     }
 }

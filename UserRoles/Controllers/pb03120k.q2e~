@@ -24,7 +24,7 @@ namespace UserRoles.Controllers
             _emailService = emailService;
         }
 
-        /* ================= USERS LIST ================= */
+        /* ===================== USERS LIST ===================== */
         public async Task<IActionResult> Index()
         {
             var currentUserId = _userManager.GetUserId(User);
@@ -34,13 +34,10 @@ namespace UserRoles.Controllers
 
             foreach (var user in _userManager.Users.ToList())
             {
-                // Hide self
-                if (user.Id == currentUserId)
-                    continue;
+                if (user.Id == currentUserId) continue;
 
                 if (isManager)
                 {
-                    // Manager cannot see Admin / Manager
                     if (await _userManager.IsInRoleAsync(user, "Admin")) continue;
                     if (await _userManager.IsInRoleAsync(user, "Manager")) continue;
                 }
@@ -51,12 +48,18 @@ namespace UserRoles.Controllers
             return View(visibleUsers);
         }
 
-        /* ================= CREATE USER ================= */
-        public IActionResult Create() => View();
+        /* ===================== CREATE USER ===================== */
+        public IActionResult Create()
+        {
+            return View();
+        }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(string firstName, string email, string role)
+        public async Task<IActionResult> Create(
+            string firstName,
+            string email,
+            string role)
         {
             if (string.IsNullOrWhiteSpace(email))
             {
@@ -70,51 +73,57 @@ namespace UserRoles.Controllers
                 return View();
             }
 
+            // ✅ Generate system password
             string generatedPassword = PasswordHelper.GeneratePassword();
 
             var user = new Users
             {
-                FirstName = firstName?.Trim(),
-                Email = email.Trim(),
-                UserName = email.Trim(),
-                EmailConfirmed = true
+                FirstName = firstName,
+                Email = email,
+                UserName = email
             };
 
             var result = await _userManager.CreateAsync(user, generatedPassword);
+
             if (!result.Succeeded)
             {
-                foreach (var err in result.Errors)
-                    ModelState.AddModelError("", err.Description);
+                foreach (var error in result.Errors)
+                    ModelState.AddModelError("", error.Description);
 
                 return View();
             }
 
             if (!await _roleManager.RoleExistsAsync(role))
+            {
                 await _roleManager.CreateAsync(new IdentityRole(role));
+            }
 
             await _userManager.AddToRoleAsync(user, role);
 
-            string loginUrl = Url.Action("Login", "Account", null, Request.Scheme)!;
+            // ✅ Send credentials email
+            string subject = "Your Account Credentials";
+            string body = $@"
+Hello {firstName},
 
-            await _emailService.SendEmailAsync(
-                email,
-                "Your Account Credentials",
-$@"Hello {firstName},
+Your account has been created.
 
 Login Email: {email}
 Temporary Password: {generatedPassword}
 
-Login URL:
-{loginUrl}
+Please login and change your password immediately.
 
-Please change your password after login."
-            );
+Login URL: https://yourdomain.com/Account/Login
 
-            TempData["Success"] = "User created successfully.";
+Thanks,
+Admin Team";
+
+            await _emailService.SendEmailAsync(email, subject, body);
+
+            TempData["Success"] = "User created and credentials sent via email.";
             return RedirectToAction(nameof(Index));
         }
 
-        /* ================= INLINE UPDATE ================= */
+        /* ===================== INLINE UPDATE ===================== */
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> InlineUpdate(string id, string firstName, string email)
@@ -125,13 +134,6 @@ Please change your password after login."
             if (user == null || user.Id == currentUserId)
                 return Forbid();
 
-            bool isManager = User.IsInRole("Manager");
-            if (isManager)
-            {
-                if (await _userManager.IsInRoleAsync(user, "Admin")) return Forbid();
-                if (await _userManager.IsInRoleAsync(user, "Manager")) return Forbid();
-            }
-
             var existing = await _userManager.FindByEmailAsync(email);
             if (existing != null && existing.Id != user.Id)
             {
@@ -139,43 +141,27 @@ Please change your password after login."
                 return RedirectToAction(nameof(Index));
             }
 
-            user.FirstName = firstName?.Trim();
-            user.Email = email.Trim();
-            user.UserName = email.Trim();
+            user.FirstName = firstName;
+            user.Email = email;
+            user.UserName = email;
 
             await _userManager.UpdateAsync(user);
-            TempData["Success"] = "User updated successfully.";
 
+            TempData["Success"] = "User updated successfully.";
             return RedirectToAction(nameof(Index));
         }
 
-        /* ================= DELETE USER (FIXED) ================= */
+        /* ===================== DELETE ===================== */
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(string id)
+        public async Task<IActionResult> DeleteConfirmed(string id)
         {
-            var currentUserId = _userManager.GetUserId(User);
-            var currentUser = await _userManager.FindByIdAsync(currentUserId!);
-            var userToDelete = await _userManager.FindByIdAsync(id);
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
 
-            if (userToDelete == null)
-                return NotFound();
-
-            // Prevent self delete
-            if (userToDelete.Id == currentUserId)
-                return Forbid();
-
-            bool currentIsManager = await _userManager.IsInRoleAsync(currentUser!, "Manager");
-            bool targetIsAdmin = await _userManager.IsInRoleAsync(userToDelete, "Admin");
-            bool targetIsManager = await _userManager.IsInRoleAsync(userToDelete, "Manager");
-
-            // Manager restrictions
-            if (currentIsManager && (targetIsAdmin || targetIsManager))
-                return Forbid();
-
-            await _userManager.DeleteAsync(userToDelete);
-
+            await _userManager.DeleteAsync(user);
             TempData["Success"] = "User deleted successfully.";
+
             return RedirectToAction(nameof(Index));
         }
     }

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using UserRoles.Data;
 using UserRoles.Models;
@@ -6,17 +6,23 @@ using UserRoles.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// MVC
 builder.Services.AddControllersWithViews();
 
+// Database
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// ✅ IDENTITY CONFIG (FIXED)
 builder.Services.AddIdentity<Users, IdentityRole>(options =>
 {
+    options.Password.RequiredLength = 6;
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
-    options.Password.RequiredLength = 6;
+
+    // ✅ IMPORTANT FIX
+    options.Password.RequireUppercase = false;
+    options.Password.RequireNonAlphanumeric = false;
 
     options.User.RequireUniqueEmail = true;
 
@@ -27,29 +33,31 @@ builder.Services.AddIdentity<Users, IdentityRole>(options =>
 .AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
 
-// EMAIL SETTINGS
-builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+// EMAIL
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection("EmailSettings"));
+
 builder.Services.AddTransient<IEmailService, EmailService>();
 
-//  SESSION TIMEOUT � 15 MINUTES OF INACTIVITY
+// COOKIE / SESSION
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.ExpireTimeSpan = TimeSpan.FromMinutes(15); // Session timeout
-    options.SlidingExpiration = true;                  // Reset timer on activity
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(15);
+    options.SlidingExpiration = true;
+
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 
-    // Paths
     options.LoginPath = "/Account/Login";
     options.AccessDeniedPath = "/Account/AccessDenied";
 });
 
 var app = builder.Build();
 
-// Seed roles + admin (if your SeedService handles this)
+// Seed roles + admin
 await SeedService.SeedDatabase(app.Services);
 
-// Configure HTTP pipeline
+// PIPELINE
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");

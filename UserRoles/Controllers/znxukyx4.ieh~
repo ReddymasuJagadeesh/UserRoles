@@ -1,0 +1,212 @@
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using UserRoles.Data;
+using UserRoles.Models;
+using UserRoles.ViewModels;
+
+namespace UserRoles.Controllers
+{
+    [Authorize]
+    public class ReportsController : Controller
+    {
+        private readonly AppDbContext _context;
+        private readonly UserManager<Users> _userManager;
+
+        public ReportsController(AppDbContext context, UserManager<Users> userManager)
+        {
+            _context = context;
+            _userManager = userManager;
+        }
+
+        /* =====================================================
+           ENTRY
+        ===================================================== */
+        public IActionResult Index()
+        {
+            if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+                return RedirectToAction("Index", "Users");
+
+            return RedirectToAction(nameof(UserReports),
+                new { userId = _userManager.GetUserId(User) });
+        }
+
+        /* =====================================================
+           USER REPORTS (USER / ADMIN / MANAGER)
+        ===================================================== */
+        [Authorize(Roles = "Admin,Manager,User")]
+        public async Task<IActionResult> UserReports(string userId)
+        {
+            var currentUserId = _userManager.GetUserId(User);
+
+            // ❌ User cannot view other users’ reports
+            if (User.IsInRole("User") && userId != currentUserId)
+                return Forbid();
+
+            var today = DateTime.Today;
+
+            var reports = await _context.DailyReports
+                .Where(r => r.ApplicationUserId == userId)
+                .OrderByDescending(r => r.Date)
+                .ThenByDescending(r => r.CreatedAt)
+                .ToListAsync();
+
+            // ✅ STRICT DATE CHECK
+            ViewBag.Today = today;
+            ViewBag.HasToday = reports.Any(r => r.Date.Date == today);
+
+            return View(reports);
+        }
+
+        /* =====================================================
+           CREATE TODAY REPORT (USER ONLY)
+        ===================================================== */
+        [Authorize(Roles = "User")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateToday(
+            string Task,
+            string Note,
+            List<string> ReportedTo)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var today = DateTime.Today;
+
+            // ❌ BLOCK SUNDAY
+            if (today.DayOfWeek == DayOfWeek.Sunday)
+            {
+                TempData["Error"] = "Sunday reports are not allowed.";
+                return RedirectToAction(nameof(UserReports), new { userId });
+            }
+
+            // ❌ ONE REPORT PER DAY
+            bool exists = await _context.DailyReports.AnyAsync(r =>
+                r.ApplicationUserId == userId &&
+                r.Date.Date == today);
+
+            if (exists)
+            {
+                TempData["Error"] = "You already submitted today's report.";
+                return RedirectToAction(nameof(UserReports), new { userId });
+            }
+
+            if (string.IsNullOrWhiteSpace(Task) || string.IsNullOrWhiteSpace(Note))
+            {
+                TempData["Error"] = "Task and Note are required.";
+                return RedirectToAction(nameof(UserReports), new { userId });
+            }
+
+            if (ReportedTo == null || !ReportedTo.Any())
+            {
+                TempData["Error"] = "Please select Manager or Admin.";
+                return RedirectToAction(nameof(UserReports), new { userId });
+            }
+
+            var report = new DailyReport
+            {
+                ApplicationUserId = userId,
+                Date = today,
+                Task = Task.Trim(),
+                Note = Note.Trim(),
+                ReportedTo = string.Join(", ", ReportedTo),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.DailyReports.Add(report);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Report submitted successfully.";
+            return RedirectToAction(nameof(UserReports), new { userId });
+        }
+
+        /* =====================================================
+           DETAILS (FIXES DETAILS BUTTON)
+        ===================================================== */
+        [Authorize(Roles = "Admin,Manager,User")]
+        public async Task<IActionResult> Details(int id)
+        {
+            var report = await _context.DailyReports
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (report == null)
+                return NotFound();
+
+            var currentUserId = _userManager.GetUserId(User);
+
+            // ❌ User cannot see other users' reports
+            if (User.IsInRole("User") && report.ApplicationUserId != currentUserId)
+                return Forbid();
+
+            var owner = await _userManager.FindByIdAsync(report.ApplicationUserId);
+
+            var vm = new ReportViewModel
+            {
+                Id = report.Id,
+                ApplicationUserId = report.ApplicationUserId,
+                UserName = owner?.UserName,
+                FirstName = owner?.FirstName,
+                Date = report.Date,
+                Task = report.Task,
+                Note = report.Note,
+                ReportedTo = report.ReportedTo,
+                ReviewerComment = report.ReviewerComment,
+                CreatedAt = report.CreatedAt
+            };
+
+            return View(vm);
+        }
+
+        /* =====================================================
+           EDIT (ADMIN / MANAGER)
+        ===================================================== */
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var report = await _context.DailyReports.FindAsync(id);
+            if (report == null) return NotFound();
+
+            return View(report);
+        }
+
+        [Authorize(Roles = "Admin,Manager")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(DailyReport model)
+        {
+            var report = await _context.DailyReports.FindAsync(model.Id);
+            if (report == null) return NotFound();
+
+            report.Task = model.Task;
+            report.Note = model.Note;
+            report.ReviewerComment = model.ReviewerComment;
+
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Report updated successfully.";
+            return RedirectToAction(nameof(UserReports),
+                new { userId = report.ApplicationUserId });
+        }
+
+        /* =====================================================
+           DELETE (ADMIN / MANAGER)
+        ===================================================== */
+        [Authorize(Roles = "Admin,Manager")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var report = await _context.DailyReports.FindAsync(id);
+            if (report == null) return NotFound();
+
+            var userId = report.ApplicationUserId;
+
+            _context.DailyReports.Remove(report);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Report deleted successfully.";
+            return RedirectToAction(nameof(UserReports), new { userId });
+        }
+    }
+}

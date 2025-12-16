@@ -1,0 +1,170 @@
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using UserRoles.Models;
+using UserRoles.Services;
+using UserRoles.ViewModels;
+
+namespace UserRoles.Controllers
+{
+    public class AccountController : Controller
+    {
+        private readonly SignInManager<Users> _signInManager;
+        private readonly UserManager<Users> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IEmailService _emailService;
+
+        public AccountController(
+            SignInManager<Users> signInManager,
+            UserManager<Users> userManager,
+            RoleManager<IdentityRole> roleManager,
+            IEmailService emailService)
+        {
+            _signInManager = signInManager;
+            _userManager = userManager;
+            _roleManager = roleManager;
+            _emailService = emailService;
+        }
+
+        /* ================= LOGIN ================= */
+
+        [HttpGet]
+        public IActionResult Login(string returnUrl = null)
+        {
+            ViewData["ReturnUrl"] = returnUrl;
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var result = await _signInManager.PasswordSignInAsync(
+                model.Email,
+                model.Password,
+                isPersistent: false,
+                lockoutOnFailure: false);
+
+            if (result.Succeeded)
+            {
+                var user = await _userManager.FindByEmailAsync(model.Email);
+                var roles = await _userManager.GetRolesAsync(user);
+
+                if (roles.Contains("Admin"))
+                    return RedirectToAction("Admin", "Home");
+
+                if (roles.Contains("Manager"))
+                    return RedirectToAction("Manager", "Home");
+
+                return RedirectToAction("Index", "Reports");
+            }
+
+            ModelState.AddModelError("", "Invalid login attempt.");
+            return View(model);
+        }
+
+        /* ================= FORGOT PASSWORD ================= */
+
+        [HttpGet]
+        public IActionResult ForgotPassword() => View();
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ChangePasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+                return View("ForgotPasswordConfirmation");
+
+            // ✅ CORRECT TOKEN
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+            // ✅ URL SAFE
+            var encodedToken = Uri.EscapeDataString(token);
+
+            var resetLink = Url.Action(
+                "ResetPassword",
+                "Account",
+                new { email = user.Email, token = encodedToken },
+                Request.Scheme);
+
+            await _emailService.SendEmailAsync(
+                user.Email!,
+                "Reset Your Password",
+                $@"Click the link below to reset your password:
+
+{resetLink}"
+            );
+
+            return View("ForgotPasswordConfirmation");
+        }
+
+        /* ================= RESET PASSWORD ================= */
+
+        [HttpGet]
+        public IActionResult ResetPassword(string email, string token)
+        {
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(token))
+                return BadRequest();
+
+            return View(new ResetPasswordViewModel
+            {
+                Email = email,
+                Token = token
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+                return RedirectToAction("ResetPasswordConfirmation");
+
+            // 🔥 IMPORTANT: Decode token
+            var decodedToken = Uri.UnescapeDataString(model.Token);
+
+            var result = await _userManager.ResetPasswordAsync(
+                user,
+                decodedToken,
+                model.Password
+            );
+
+            if (!result.Succeeded)
+            {
+                foreach (var error in result.Errors)
+                    ModelState.AddModelError("", error.Description);
+
+                return View(model);
+            }
+
+            return RedirectToAction("ResetPasswordConfirmation");
+        }
+
+        /* ================= LOGOUT ================= */
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Logout()
+        {
+            await _signInManager.SignOutAsync();
+            return RedirectToAction("Index", "Home");
+        }
+
+        /* ================= MISC ================= */
+
+        public IActionResult ForgotPasswordConfirmation() => View();
+        public IActionResult ResetPasswordConfirmation() => View();
+
+        public IActionResult AccessDenied() => View();
+    }
+}

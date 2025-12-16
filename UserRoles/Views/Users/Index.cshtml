@@ -1,44 +1,108 @@
 ﻿@model IEnumerable<UserRoles.Models.Users>
 
-<h2>Users</h2>
+@{
+    ViewData["Title"] = "Users";
 
-<a asp-action="Create" class="btn btn-success mb-3">Add User</a>
+    // ✅ FIX: editId must be STRING, not int
+    string editId = Context.Request.Query.ContainsKey("editId")
+        ? Context.Request.Query["editId"].ToString()
+        : null;
+}
 
-<table class="table table-bordered">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th style="width:260px">Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var user in Model)
-        {
+<h2 class="mb-4">Users</h2>
+
+<a asp-action="Create" class="btn btn-success mb-3">
+    Add User
+</a>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle">
+        <thead class="table-light">
             <tr>
-                <td>@user.FirstName</td>
-                <td>@user.Email</td>
-                <td>
-                    <a asp-controller="Reports"
-                       asp-action="UserReports"
-                       asp-route-userId="@user.Id"
-                       class="btn btn-primary btn-sm">
-                        View Reports
-                    </a>
-
-                    <a asp-action="Edit"
-                       asp-route-id="@user.Id"
-                       class="btn btn-warning btn-sm">
-                        Edit
-                    </a>
-
-                    <a asp-action="Delete"
-                       asp-route-id="@user.Id"
-                       class="btn btn-danger btn-sm">
-                        Delete
-                    </a>
-                </td>
+                <th style="width:260px;">Name</th>
+                <th>Email</th>
+                <th style="width:320px;" class="text-center">Actions</th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+
+        <tbody>
+            @foreach (var user in Model)
+            {
+                // ✅ SAFE comparison (string vs string)
+                bool isEditing = editId == user.Id;
+
+                <tr>
+                    @if (isEditing)
+                    {
+                        <form asp-action="InlineUpdate" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@user.Id" />
+
+                        <td>
+                            <input name="firstName"
+                                   value="@user.FirstName"
+                                   class="form-control form-control-sm"
+                                   required />
+                        </td>
+
+                        <td>
+                            <input name="email"
+                                   value="@user.Email"
+                                   class="form-control form-control-sm"
+                                   required />
+                        </td>
+
+                        <td class="text-center">
+                            <div class="d-inline-flex gap-2">
+                                <button type="submit"
+                                        class="btn btn-success btn-sm">
+                                    Save
+                                </button>
+
+                                <a asp-action="Index"
+                                   class="btn btn-secondary btn-sm">
+                                    Cancel
+                                </a>
+                            </div>
+                        </td>
+                        </form>
+                    }
+                    else
+                    {
+                        <td>@user.FirstName</td>
+                        <td>@user.Email</td>
+
+                        <td class="text-center">
+                            <div class="d-inline-flex gap-2">
+                                <a asp-controller="Reports"
+                                   asp-action="UserReports"
+                                   asp-route-userId="@user.Id"
+                                   class="btn btn-primary btn-sm">
+                                    View Reports
+                                </a>
+
+                                <a asp-action="Index"
+                                   asp-route-editId="@user.Id"
+                                   class="btn btn-warning btn-sm">
+                                    Edit
+                                </a>
+
+                                <form asp-action="Delete"
+                                      asp-route-id="@user.Id"
+                                      method="post"
+                                      class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit"
+                                            class="btn btn-danger btn-sm"
+                                            onclick="return confirm('Delete this user?');">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

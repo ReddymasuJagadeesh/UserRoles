@@ -1,15 +1,28 @@
-﻿namespace UserRoles.ViewModels
+﻿using System;
+
+namespace UserRoles.ViewModels
 {
     public class ReportViewModel
     {
         public int Id { get; set; }
-        public string ApplicationUserId { get; set; } = string.Empty;
-        public string? UserName { get; set; }         // email or username of the owner
-        public string? FirstName { get; set; }        // from Users.FirstName (optional)
+
+        public string ApplicationUserId { get; set; }
+
+        public string? UserName { get; set; }
+
+        public string? FirstName { get; set; }
+
         public DateTime Date { get; set; }
-        public string Task { get; set; } = string.Empty;
-        public string? Note { get; set; }
-        public string? ReportedTo { get; set; }
+
+        public string Task { get; set; }
+
+        public string Note { get; set; }
+
+        public string ReportedTo { get; set; }
+
+        // ✅ THIS WAS MISSING → CAUSED ALL ERRORS
+        public string? ReviewerComment { get; set; }
+
         public DateTime CreatedAt { get; set; }
     }
 }

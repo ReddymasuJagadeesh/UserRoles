@@ -8,21 +8,23 @@ namespace UserRoles.Models
     {
         public int Id { get; set; }
 
-        public string ApplicationUserId { get; set; }
+        [Required]
+        public string ApplicationUserId { get; set; } = null!;
 
+        [Column(TypeName = "date")]
         public DateTime Date { get; set; }
 
-        public string Task { get; set; }
+        [Required]
+        public string Task { get; set; } = string.Empty;
 
-        public string Note { get; set; }
+        [Required]
+        public string Note { get; set; } = string.Empty;
 
-        public string ReportedTo { get; set; }
+        public string ReportedTo { get; set; } = string.Empty;
 
-        // ✅ MUST EXIST
+        // ✅ Admin / Manager comment
         public string? ReviewerComment { get; set; }
 
         public DateTime CreatedAt { get; set; }
     }
-
 }
-
