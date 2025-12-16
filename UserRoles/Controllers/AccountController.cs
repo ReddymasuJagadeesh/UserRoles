@@ -13,10 +13,11 @@ namespace UserRoles.Controllers
         private readonly RoleManager<IdentityRole> roleManager;
         private readonly IEmailService emailService;
 
-        public AccountController(SignInManager<Users> signInManager,
-                                 UserManager<Users> userManager,
-                                 RoleManager<IdentityRole> roleManager,
-                                 IEmailService emailService)
+        public AccountController(
+            SignInManager<Users> signInManager,
+            UserManager<Users> userManager,
+            RoleManager<IdentityRole> roleManager,
+            IEmailService emailService)
         {
             this.signInManager = signInManager;
             this.userManager = userManager;
@@ -24,7 +25,7 @@ namespace UserRoles.Controllers
             this.emailService = emailService;
         }
 
-        // ------------------- LOGIN -------------------
+        /* ===================== LOGIN ===================== */
 
         [HttpGet]
         public IActionResult Login(string returnUrl = null)
@@ -37,90 +38,40 @@ namespace UserRoles.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
         {
-            ViewData["ReturnUrl"] = returnUrl;
-
             if (!ModelState.IsValid)
-            {
                 return View(model);
-            }
 
-            // 🔥 FORCE NON-PERSISTENT COOKIE (session cookie)
             var result = await signInManager.PasswordSignInAsync(
-                model.Email, model.Password, isPersistent: false, lockoutOnFailure: false);
+                model.Email,
+                model.Password,
+                isPersistent: false,
+                lockoutOnFailure: false);
 
-            if (result.Succeeded)
+            if (!result.Succeeded)
             {
-                // Return where user came from if protected resource redirected them
-                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                    return Redirect(returnUrl);
-
-                // ROLE-BASED REDIRECT
-                var user = await userManager.FindByEmailAsync(model.Email);
-
-                if (user != null)
-                {
-                    var roles = await userManager.GetRolesAsync(user);
-
-                    if (roles.Contains("Admin"))
-                        return RedirectToAction("Admin", "Home");
-
-                    if (roles.Contains("Manager"))
-                        return RedirectToAction("Manager", "Home");
-
-                    if (roles.Contains("User"))
-                        return RedirectToAction("Index", "Reports");
-                }
-
-                // FALLBACK
-                return RedirectToAction("Index", "Home");
-            }
-
-            ModelState.AddModelError("", "Invalid Login Attempt.");
-            return View(model);
-        }
-
-        // ------------------- REGISTER -------------------
-
-        [HttpGet]
-        public IActionResult Register() => View();
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(RegisterViewModel model)
-        {
-            if (!ModelState.IsValid)
+                ModelState.AddModelError("", "Invalid login attempt.");
                 return View(model);
-
-            var user = new Users
-            {
-                FirstName = model.Name,
-                UserName = model.Email,
-                NormalizedUserName = model.Email.ToUpper(),
-                Email = model.Email,
-                NormalizedEmail = model.Email.ToUpper()
-            };
-
-            var createResult = await userManager.CreateAsync(user, model.Password);
-
-            if (createResult.Succeeded)
-            {
-                // Ensure User role exists
-                if (!await roleManager.RoleExistsAsync("User"))
-                    await roleManager.CreateAsync(new IdentityRole("User"));
-
-                await userManager.AddToRoleAsync(user, "User");
-
-                // After register → redirect to login
-                return RedirectToAction("Login", "Account");
             }
 
-            foreach (var error in createResult.Errors)
-                ModelState.AddModelError("", error.Description);
+            var user = await userManager.FindByEmailAsync(model.Email);
+            if (user != null)
+            {
+                var roles = await userManager.GetRolesAsync(user);
 
-            return View(model);
+                if (roles.Contains("Admin"))
+                    return RedirectToAction("Admin", "Home");
+
+                if (roles.Contains("Manager"))
+                    return RedirectToAction("Manager", "Home");
+
+                if (roles.Contains("User"))
+                    return RedirectToAction("Index", "Reports");
+            }
+
+            return RedirectToAction("Index", "Home");
         }
 
-        // ------------------- PASSWORD RESET -------------------
+        /* ===================== PASSWORD RESET ===================== */
 
         [HttpGet]
         public IActionResult VerifyEmail() => View();
@@ -135,74 +86,83 @@ namespace UserRoles.Controllers
             var user = await userManager.FindByEmailAsync(model.Email);
             if (user == null)
             {
-                ModelState.AddModelError("", "User not found!");
-                return View(model);
+                // Security: don't reveal user existence
+                return RedirectToAction(nameof(EmailSent));
             }
 
-            var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
+            // ✅ CORRECT TOKEN
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
 
-            var link = Url.Action(
-                "ChangePassword", "Account",
-                new { email = model.Email, token = token },
+            // ✅ URL SAFE
+            var encodedToken = Uri.EscapeDataString(token);
+
+            var resetLink = Url.Action(
+                "ChangePassword",
+                "Account",
+                new { email = user.Email, token = encodedToken },
                 Request.Scheme);
 
-            await emailService.SendEmailAsync(model.Email, "Reset Password", $"Click the link: {link}");
+            await emailService.SendEmailAsync(
+                user.Email,
+                "Reset your password",
+                $"Click the link below to reset your password:\n\n{resetLink}");
 
-            return RedirectToAction("EmailSent");
+            return RedirectToAction(nameof(EmailSent));
         }
 
         [HttpGet]
         public IActionResult ChangePassword(string email, string token)
         {
-            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(token))
-                return RedirectToAction("VerifyEmail");
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(token))
+                return RedirectToAction(nameof(VerifyEmail));
 
-            return View(new ChangePasswordViewModel { Email = email, token = token });
+            return View(new ChangePasswordViewModel
+            {
+                Email = email,
+                Token = token
+            });
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
         {
             if (!ModelState.IsValid)
-            {
-                ModelState.AddModelError("", "Something went wrong");
                 return View(model);
-            }
 
             var user = await userManager.FindByEmailAsync(model.Email);
-
             if (user == null)
             {
-                ModelState.AddModelError("", "User not found!");
+                ModelState.AddModelError("", "Invalid request.");
                 return View(model);
             }
 
-            var resetResult = await userManager.ResetPasswordAsync(user, model.token, model.NewPassword);
+            // ✅ DECODE TOKEN
+            var decodedToken = Uri.UnescapeDataString(model.Token);
 
-            if (!resetResult.Succeeded)
+            var result = await userManager.ResetPasswordAsync(
+                user,
+                decodedToken,
+                model.NewPassword);
+
+            if (!result.Succeeded)
             {
-                foreach (var error in resetResult.Errors)
+                foreach (var error in result.Errors)
                     ModelState.AddModelError("", error.Description);
-            }
-            else
-            {
-                return RedirectToAction("Login");
+
+                return View(model);
             }
 
-            return View(model);
+            return RedirectToAction(nameof(Login));
         }
 
-        // ------------------- MISC -------------------
+        /* ===================== MISC ===================== */
 
         [HttpGet]
         public IActionResult EmailSent() => View();
 
         [HttpGet]
-        public IActionResult AccessDenied(string returnUrl = null)
-        {
-            ViewData["ReturnUrl"] = returnUrl;
-            return View();
-        }
+        public IActionResult AccessDenied() => View();
 
         [HttpPost]
         [ValidateAntiForgeryToken]
