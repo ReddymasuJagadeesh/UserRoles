@@ -1,35 +1,39 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using UserRoles.Models;
 
 namespace UserRoles.Models
 {
     public class DailyReport
     {
         [Key]
-        public int Id { get; set; }             // S.No (auto-increment)
+        public int Id { get; set; }
 
         [Required]
-        public DateTime Date { get; set; } = DateTime.UtcNow;
+        [Column(TypeName = "date")]
+        public DateTime Date { get; set; }
 
         [Required]
         [StringLength(500)]
-        public string Task { get; set; }
+        public string Task { get; set; } = string.Empty;
 
-        [StringLength(2000)]
-        public string Note { get; set; }        // comment
-
-        [StringLength(256)]
-        public string ReportedTo { get; set; }  // manager email or name
-
-        // FK to ApplicationUser (Identity)
         [Required]
-        public string ApplicationUserId { get; set; }
+        [StringLength(2000)]
+        public string Note { get; set; } = string.Empty;
 
-       
+        [Required]
+        [StringLength(256)]
+        public string ReportedTo { get; set; } = string.Empty;
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        // 🔴 FK (MUST MATCH AspNetUsers.Id)
+        [Required]
+        public string ApplicationUserId { get; set; } = string.Empty;
+
+        // Navigation (IMPORTANT)
+        [ForeignKey(nameof(ApplicationUserId))]
+        public Users ApplicationUser { get; set; } = null!;
+
+        [Required]
+        public DateTime CreatedAt { get; set; }
     }
 }
-

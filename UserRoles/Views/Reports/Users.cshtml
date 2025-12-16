@@ -1,0 +1,111 @@
+﻿@model IEnumerable<UserRoles.Models.DailyReport>
+
+@{
+    bool isUser = User.IsInRole("User");
+    var today = DateTime.UtcNow.Date;
+
+    var todayReport = Model.FirstOrDefault(r => r.Date == today);
+    var previousReports = Model
+        .Where(r => r.Date < today)
+        .OrderByDescending(r => r.Date)
+        .ToList();
+}
+
+<h2>Reports</h2>
+
+<!-- ================= SUBMIT REPORT ================= -->
+@if (isUser && todayReport == null)
+{
+    <div class="card mb-4">
+        <div class="card-header fw-bold">Submit Today’s Report</div>
+
+        <div class="card-body">
+            <form asp-action="CreateToday" method="post">
+                @Html.AntiForgeryToken()
+
+                <label>Date</label>
+                <input type="date"
+                       name="Date"
+                       value="@today.ToString("yyyy-MM-dd")"
+                       class="form-control mb-2"
+                       required />
+
+                <input name="Task"
+                       class="form-control mb-2"
+                       placeholder="Enter today's task"
+                       required />
+
+                <textarea name="Note"
+                      class="form-control mb-2"
+                      placeholder="Work details / comments"
+                      rows="3"
+                      required></textarea>
+
+                <label class="fw-semibold">Reported To</label><br />
+                <input type="checkbox" name="ReportedTo" value="Manager" /> Manager
+                <input type="checkbox" name="ReportedTo" value="Admin" class="ms-3" /> Admin
+
+                <br /><br />
+                <button class="btn btn-success">Submit Today Report</button>
+            </form>
+        </div>
+    </div>
+}
+
+<!-- ================= REPORTS HISTORY ================= -->
+<div class="card">
+    <div class="card-header fw-bold">Reports History</div>
+
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Task</th>
+                <th>Note</th>
+                <th>Reported To</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @if (todayReport != null)
+            {
+                <tr class="table-success">
+                    <td>@todayReport.Date.ToString("yyyy-MM-dd")</td>
+                    <td>@todayReport.Task</td>
+                    <td>@todayReport.Note</td>
+                    <td>@todayReport.ReportedTo</td>
+                    <td>
+                        <a asp-action="Details"
+                           asp-route-id="@todayReport.Id"
+                           class="btn btn-info btn-sm">Details</a>
+                    </td>
+                </tr>
+            }
+
+            @foreach (var r in previousReports)
+            {
+                <tr>
+                    <td>@r.Date.ToString("yyyy-MM-dd")</td>
+                    <td>@r.Task</td>
+                    <td>@r.Note</td>
+                    <td>@r.ReportedTo</td>
+                    <td>
+                        <a asp-action="Details"
+                           asp-route-id="@r.Id"
+                           class="btn btn-info btn-sm">Details</a>
+                    </td>
+                </tr>
+            }
+
+            @if (todayReport == null && !previousReports.Any())
+            {
+                <tr>
+                    <td colspan="5" class="text-center text-muted">
+                        No reports available.
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

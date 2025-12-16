@@ -1,0 +1,95 @@
+﻿@model UserRoles.Models.Users
+
+@{
+    ViewData["Title"] = "Edit User";
+}
+
+<h3 class="mb-3">Edit User</h3>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+
+            <!-- Hidden User Id -->
+            <input type="hidden" name="id" value="@Model.Id" />
+
+            <!-- Name -->
+            <div class="mb-3">
+                <label class="form-label">Name</label>
+                <input name="firstName"
+                       value="@Model.FirstName"
+                       class="form-control"
+                       required />
+            </div>
+
+            <!-- Email -->
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input name="email"
+                       type="email"
+                       value="@Model.Email"
+                       class="form-control"
+                       required />
+            </div>
+
+            <!-- Password with Eye Toggle -->
+            <div class="mb-4">
+                <label class="form-label">
+                    New Password
+                    <small class="text-muted">(leave blank to keep current password)</small>
+                </label>
+
+                <div class="input-group">
+                    <input id="passwordInput"
+                           name="password"
+                           type="password"
+                           class="form-control" />
+
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            onclick="togglePassword()">
+                        👁
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex gap-2 align-items-center">
+
+                <!-- Save -->
+                <button type="submit" class="btn btn-success">
+                    Save Changes
+                </button>
+
+                <!-- Cancel -->
+                <a asp-action="Users"
+                   asp-controller="Reports"
+                   class="btn btn-secondary">
+                    Cancel
+                </a>
+
+                <!-- Spacer -->
+                <div class="flex-grow-1"></div>
+
+                <!-- Back to Users -->
+                <a asp-action="Users"
+                   asp-controller="Reports"
+                   class="btn btn-outline-dark">
+                    ← Back to Users
+                </a>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function togglePassword() {
+            const input = document.getElementById("passwordInput");
+            input.type = input.type === "password" ? "text" : "password";
+        }
+    </script>
+}

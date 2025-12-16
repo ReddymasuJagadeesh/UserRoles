@@ -1,0 +1,89 @@
+﻿@model UserRoles.ViewModels.ReportViewModel
+
+@{
+    ViewData["Title"] = "Report Details";
+    bool isAdminOrManager = User.IsInRole("Admin") || User.IsInRole("Manager");
+}
+
+<div class="card mt-4 shadow-sm">
+    <div class="card-header">
+        <h4 class="mb-0">Report Details</h4>
+    </div>
+
+    <div class="card-body">
+        <dl class="row">
+
+            @* User info ONLY for Admin / Manager *@
+            @if (isAdminOrManager)
+            {
+                <dt class="col-sm-3">User</dt>
+                <dd class="col-sm-9">
+                    @if (!string.IsNullOrWhiteSpace(Model.FirstName))
+                    {
+                        @($"{Model.FirstName} ({Model.UserName})")
+                    }
+                    else
+                    {
+                        @Model.UserName
+                    }
+                </dd>
+            }
+
+            <dt class="col-sm-3">Date</dt>
+            <dd class="col-sm-9">
+                @Model.Date.ToLocalTime().ToString("yyyy-MM-dd")
+            </dd>
+
+            <dt class="col-sm-3">Task</dt>
+            <dd class="col-sm-9">
+                @Model.Task
+            </dd>
+
+            <dt class="col-sm-3">Note</dt>
+            <dd class="col-sm-9">
+                @Model.Note
+            </dd>
+
+            <dt class="col-sm-3">Reported To</dt>
+            <dd class="col-sm-9">
+                @Model.ReportedTo
+            </dd>
+
+            <dt class="col-sm-3">Created At</dt>
+            <dd class="col-sm-9">
+                @Model.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+            </dd>
+        </dl>
+    </div>
+
+    <div class="card-footer d-flex flex-wrap gap-2">
+
+        @* USER → Back to own reports *@
+        @if (User.IsInRole("User"))
+        {
+            <a asp-action="UserReports"
+               asp-controller="Reports"
+               asp-route-userId="@Model.ApplicationUserId"
+               class="btn btn-secondary">
+                ← Back to My Reports
+            </a>
+        }
+
+        @* ADMIN / MANAGER → Back to that user's reports *@
+        @if (isAdminOrManager)
+        {
+            <a asp-action="UserReports"
+               asp-controller="Reports"
+               asp-route-userId="@Model.ApplicationUserId"
+               class="btn btn-secondary">
+                ← Back to User Reports
+            </a>
+
+            <a asp-action="Users"
+               asp-controller="Users"
+               class="btn btn-outline-dark">
+                ← Back to Users
+            </a>
+        }
+    </div>
+</div>

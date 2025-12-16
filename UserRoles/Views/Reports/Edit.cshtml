@@ -1,39 +1,92 @@
 ﻿@model UserRoles.Models.DailyReport
+
 @{
     ViewData["Title"] = "Edit Report";
+    bool isAdminOrManager = User.IsInRole("Admin") || User.IsInRole("Manager");
 }
 
-<h2>Edit Report</h2>
+<h2 class="mb-3">Edit Report</h2>
 
-<form asp-action="Edit" method="post">
-    <input type="hidden" asp-for="Id" />
-    <div class="form-group mb-2">
-        <label asp-for="Date"></label>
-        <input asp-for="Date" class="form-control" type="date" />
-        <span asp-validation-for="Date" class="text-danger"></span>
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+
+            <!-- Hidden Id -->
+            <input type="hidden" asp-for="Id" />
+
+            <!-- Date (Read-only to avoid accidental change) -->
+            <div class="mb-3">
+                <label asp-for="Date" class="form-label"></label>
+                <input asp-for="Date"
+                       class="form-control"
+                       type="date"
+                       readonly />
+            </div>
+
+            <!-- Task -->
+            <div class="mb-3">
+                <label asp-for="Task" class="form-label"></label>
+                <input asp-for="Task" class="form-control" />
+                <span asp-validation-for="Task" class="text-danger"></span>
+            </div>
+
+            <!-- Note -->
+            <div class="mb-3">
+                <label asp-for="Note" class="form-label"></label>
+                <textarea asp-for="Note"
+                          class="form-control"
+                          rows="3"></textarea>
+                <span asp-validation-for="Note" class="text-danger"></span>
+            </div>
+
+            <!-- Reported To -->
+            <div class="mb-4">
+                <label asp-for="ReportedTo" class="form-label"></label>
+                <input asp-for="ReportedTo" class="form-control" />
+                <span asp-validation-for="ReportedTo" class="text-danger"></span>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex gap-2 align-items-center">
+
+                <!-- Save -->
+                <button type="submit" class="btn btn-primary">
+                    Save Changes
+                </button>
+
+                <!-- Cancel -->
+                <a asp-action="Index"
+                   asp-controller="Reports"
+                   class="btn btn-secondary">
+                    Cancel
+                </a>
+
+                <!-- Spacer -->
+                <div class="flex-grow-1"></div>
+
+                <!-- Back to Reports -->
+                <a asp-action="Index"
+                   asp-controller="Reports"
+                   class="btn btn-outline-dark">
+                    ← Back to Reports
+                </a>
+
+                <!-- Back to Users (Admin / Manager only) -->
+                @if (isAdminOrManager)
+                {
+                    <a asp-action="Users"
+                       asp-controller="Reports"
+                       class="btn btn-outline-secondary">
+                        ← Back to Users
+                    </a>
+                }
+            </div>
+        </form>
+
     </div>
-
-    <div class="form-group mb-2">
-        <label asp-for="Task"></label>
-        <input asp-for="Task" class="form-control" />
-        <span asp-validation-for="Task" class="text-danger"></span>
-    </div>
-
-    <div class="form-group mb-2">
-        <label asp-for="Note"></label>
-        <textarea asp-for="Note" class="form-control"></textarea>
-        <span asp-validation-for="Note" class="text-danger"></span>
-    </div>
-
-    <div class="form-group mb-2">
-        <label asp-for="ReportedTo"></label>
-        <input asp-for="ReportedTo" class="form-control" />
-        <span asp-validation-for="ReportedTo" class="text-danger"></span>
-    </div>
-
-    <button type="submit" class="btn btn-primary">Save</button>
-    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-</form>
+</div>
 
 @section Scripts {
     @{

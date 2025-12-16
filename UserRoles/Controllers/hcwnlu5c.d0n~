@@ -1,0 +1,133 @@
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using UserRoles.Models;
+using UserRoles.ViewModels;
+
+namespace UserRoles.Controllers
+{
+    [Authorize(Roles = "Admin,Manager")]
+    public class UsersController : Controller
+    {
+        private readonly UserManager<Users> _userManager;
+
+        public UsersController(UserManager<Users> userManager)
+        {
+            _userManager = userManager;
+        }
+
+        /* ===============================
+           USERS LIST
+        =============================== */
+        public async Task<IActionResult> Index()
+        {
+            var users = _userManager.Users.AsQueryable();
+
+            if (User.IsInRole("Admin"))
+            {
+                users = users.Where(u => u.Email != "Admin@gmail.com");
+            }
+
+            if (User.IsInRole("Manager"))
+            {
+                users = users.Where(u =>
+                    u.Email != "Admin@gmail.com" &&
+                    u.Email != "Manager@gmail.com");
+            }
+
+            return View(await users.ToListAsync());
+        }
+
+        /* ===============================
+           CREATE USER
+        =============================== */
+        public IActionResult Create() => View();
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(UserCreateViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            var user = new Users
+            {
+                UserName = model.Email,
+                Email = model.Email,
+                FirstName = model.FirstName
+            };
+
+            var result = await _userManager.CreateAsync(user, model.Password);
+            if (!result.Succeeded)
+            {
+                foreach (var e in result.Errors)
+                    ModelState.AddModelError("", e.Description);
+                return View(model);
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        /* ===============================
+           EDIT USER
+        =============================== */
+        public async Task<IActionResult> Edit(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            return View(new UserEditViewModel
+            {
+                Id = user.Id,
+                Email = user.Email!,
+                FirstName = user.FirstName
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(UserEditViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            var user = await _userManager.FindByIdAsync(model.Id);
+            if (user == null) return NotFound();
+
+            user.Email = model.Email;
+            user.UserName = model.Email;
+            user.FirstName = model.FirstName;
+
+            await _userManager.UpdateAsync(user);
+
+            if (!string.IsNullOrWhiteSpace(model.NewPassword))
+            {
+                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                await _userManager.ResetPasswordAsync(user, token, model.NewPassword);
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        /* ===============================
+           DELETE USER
+        =============================== */
+        public async Task<IActionResult> Delete(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            return View(user);
+        }
+
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            await _userManager.DeleteAsync(user);
+            return RedirectToAction(nameof(Index));
+        }
+    }
+}

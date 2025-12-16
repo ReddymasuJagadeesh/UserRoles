@@ -1,0 +1,53 @@
+﻿@model IEnumerable<UserRoles.Models.DailyReport>
+@{
+    bool isUser = User.IsInRole("User");
+    bool canEdit = User.IsInRole("Admin") || User.IsInRole("Manager");
+}
+
+<h2>Reports</h2>
+
+@if (isUser && !(ViewBag.HasTodayReport ?? false))
+{
+    <form asp-action="CreateToday" method="post">
+        <input name="Task" class="form-control mb-2" placeholder="Task" required />
+        <textarea name="Note" class="form-control mb-2" placeholder="Note" required></textarea>
+        <input name="ReportedTo" class="form-control mb-2" placeholder="Manager/Admin" required />
+        <button class="btn btn-success">Submit Today Report</button>
+    </form>
+    <hr />
+}
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Task</th>
+            <th>Note</th>
+            <th>Reported To</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var r in Model)
+        {
+            <tr>
+                <td>@r.Date.ToString("yyyy-MM-dd")</td>
+                <td>@r.Task</td>
+                <td>@r.Note</td>
+                <td>@r.ReportedTo</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@r.Id"
+                       class="btn btn-info btn-sm">Details</a>
+
+                    @if (canEdit)
+                    {
+                        <a asp-action="Edit" asp-route-id="@r.Id"
+                           class="btn btn-warning btn-sm">Edit</a>
+                        <a asp-action="Delete" asp-route-id="@r.Id"
+                           class="btn btn-danger btn-sm">Delete</a>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

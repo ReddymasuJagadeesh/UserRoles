@@ -1,3 +1,13 @@
+C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.csproj.AssemblyReference.cache
+C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\rpswa.dswa.cache.json
+C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.AssemblyInfoInputs.cache
+C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.AssemblyInfo.cs
+C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.csproj.CoreCompileInputs.cache
+C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.RazorAssemblyInfo.cache
+C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.RazorAssemblyInfo.cs
+C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.sourcelink.json
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\bin\Debug\net10.0\appsettings.Development.json
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\bin\Debug\net10.0\appsettings.json
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\bin\Debug\net10.0\UserRoles.staticwebassets.runtime.json
@@ -108,15 +118,6 @@ C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\bin\Debug\net10.0\tr\Mi
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\bin\Debug\net10.0\zh-Hans\Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\bin\Debug\net10.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\bin\Debug\net10.0\runtimes\win\lib\net9.0\System.Windows.Extensions.dll
-C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.csproj.AssemblyReference.cache
-C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\rpswa.dswa.cache.json
-C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.AssemblyInfoInputs.cache
-C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.AssemblyInfo.cs
-C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.csproj.CoreCompileInputs.cache
-C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.MvcApplicationPartsAssemblyInfo.cache
-C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.RazorAssemblyInfo.cache
-C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.RazorAssemblyInfo.cs
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\rjimswa.dswa.cache.json
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\rjsmrazor.dswa.cache.json
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\rjsmcshtml.dswa.cache.json
@@ -200,4 +201,3 @@ C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\refin
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.pdb
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.genruntimeconfig.cache
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\ref\UserRoles.dll
-C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.sourcelink.json

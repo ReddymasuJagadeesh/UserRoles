@@ -1,0 +1,11 @@
+﻿@model UserRoles.Models.Users
+
+<h3>Delete User</h3>
+
+<p>Are you sure you want to delete <strong>@Model.Email</strong>?</p>
+
+<form method="post">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button class="btn btn-danger">Yes, Delete</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>

@@ -39,24 +39,20 @@ namespace UserRoles.Controllers
             if (User.IsInRole("User") && userId != currentUserId)
                 return Forbid();
 
-            // ✅ BUSINESS DATE (LOCAL, DATE ONLY)
-            var today = DateTime.Today;
-
             var reports = await _context.DailyReports
                 .Where(r => r.ApplicationUserId == userId)
                 .OrderByDescending(r => r.Date)
                 .ThenByDescending(r => r.CreatedAt)
                 .ToListAsync();
 
-            // ✅ IMPORTANT: Date-only comparison
-            bool hasToday = reports.Any(r => r.Date.Date == today);
+            // ✅ ALWAYS USE UTC FOR LOGIC
+            var todayUtc = DateTime.UtcNow.Date;
 
-            ViewBag.Today = today;
-            ViewBag.HasToday = hasToday;
+            ViewBag.Today = todayUtc;
+            ViewBag.HasTodayReport = reports.Any(r => r.Date == todayUtc);
 
             return View(reports);
         }
-
 
         /* ================= CREATE TODAY REPORT ================= */
         [Authorize(Roles = "User")]
@@ -69,11 +65,11 @@ namespace UserRoles.Controllers
         {
             var userId = _userManager.GetUserId(User)!;
 
-            // ✅ BUSINESS DATE (LOCAL)
-            var today = DateTime.Today;
+            // ✅ FORCE UTC DATE (FIXES 23/24 ISSUE)
+            var todayUtc = DateTime.UtcNow.Date;
 
-            /* ❌ BLOCK SUNDAY */
-            if (today.DayOfWeek == DayOfWeek.Sunday)
+            /* ❌ BLOCK SUNDAY (UTC SAFE) */
+            if (todayUtc.DayOfWeek == DayOfWeek.Sunday)
             {
                 TempData["Error"] = "Sunday reports are not allowed.";
                 return RedirectToAction(nameof(UserReports), new { userId });
@@ -82,7 +78,7 @@ namespace UserRoles.Controllers
             /* ❌ ONE REPORT PER DAY */
             bool exists = await _context.DailyReports.AnyAsync(r =>
                 r.ApplicationUserId == userId &&
-                r.Date == today);
+                r.Date == todayUtc);
 
             if (exists)
             {
@@ -105,11 +101,11 @@ namespace UserRoles.Controllers
             var report = new DailyReport
             {
                 ApplicationUserId = userId,
-                Date = today,                      // ✅ CORRECT BUSINESS DATE
+                Date = todayUtc,                     // ✅ CORRECT DATE
                 Task = Task.Trim(),
                 Note = Note.Trim(),
                 ReportedTo = string.Join(", ", ReportedTo),
-                CreatedAt = DateTime.UtcNow        // ✅ POSTGRES SAFE
+                CreatedAt = DateTime.UtcNow          // ✅ NO POSTGRES ERROR
             };
 
             _context.DailyReports.Add(report);
