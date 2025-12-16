@@ -56,8 +56,12 @@ namespace UserRoles.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(string firstName, string email, string role)
+        public async Task<IActionResult> Create(
+    string firstName,
+    string email,
+    string role)
         {
+            // ================= BASIC VALIDATION =================
             if (string.IsNullOrWhiteSpace(email))
             {
                 ModelState.AddModelError("", "Email is required.");
@@ -70,6 +74,23 @@ namespace UserRoles.Controllers
                 return View();
             }
 
+            // ================= ROLE SECURITY RULE =================
+            bool isAdmin = User.IsInRole("Admin");
+            bool isManager = User.IsInRole("Manager");
+
+            // ❌ Manager CANNOT create Manager
+            if (isManager && role == "Manager")
+            {
+                return Forbid(); // strong security
+            }
+
+            // ❌ Non-admin cannot create Admin
+            if (!isAdmin && role == "Admin")
+            {
+                return Forbid();
+            }
+
+            // ================= PASSWORD GENERATION =================
             string generatedPassword = PasswordHelper.GeneratePassword();
 
             var user = new Users
@@ -81,38 +102,54 @@ namespace UserRoles.Controllers
             };
 
             var result = await _userManager.CreateAsync(user, generatedPassword);
+
             if (!result.Succeeded)
             {
-                foreach (var err in result.Errors)
-                    ModelState.AddModelError("", err.Description);
+                foreach (var error in result.Errors)
+                    ModelState.AddModelError("", error.Description);
 
                 return View();
             }
 
+            // ================= ROLE CREATION =================
             if (!await _roleManager.RoleExistsAsync(role))
+            {
                 await _roleManager.CreateAsync(new IdentityRole(role));
+            }
 
             await _userManager.AddToRoleAsync(user, role);
 
-            string loginUrl = Url.Action("Login", "Account", null, Request.Scheme)!;
+            // ================= EMAIL =================
+            string loginUrl = Url.Action(
+                "Login",
+                "Account",
+                null,
+                Request.Scheme
+            )!;
 
-            await _emailService.SendEmailAsync(
-                email,
-                "Your Account Credentials",
-$@"Hello {firstName},
+            string subject = "Your Account Credentials";
+            string body = $@"
+Hello {firstName},
+
+Your account has been created.
 
 Login Email: {email}
 Temporary Password: {generatedPassword}
 
+Please login and change your password immediately.
+
 Login URL:
 {loginUrl}
 
-Please change your password after login."
-            );
+Thanks,
+Admin Team";
 
-            TempData["Success"] = "User created successfully.";
+            await _emailService.SendEmailAsync(email, subject, body);
+
+            TempData["Success"] = "User created successfully and credentials sent.";
             return RedirectToAction(nameof(Index));
         }
+
 
         /* ================= INLINE UPDATE ================= */
         [HttpPost]

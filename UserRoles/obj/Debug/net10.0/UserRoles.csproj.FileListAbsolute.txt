@@ -194,10 +194,10 @@ C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\stati
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\staticwebassets.development.json
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\staticwebassets.build.endpoints.json
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\swae.build.ex.cache
-C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.csproj.Up2Date
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.dll
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\refint\UserRoles.dll
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.pdb
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\UserRoles.genruntimeconfig.cache
 C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\obj\Debug\net10.0\ref\UserRoles.dll
+C:\Users\chand\Downloads\employlogin\UserRoles\UserRoles\bin\Debug\net10.0\dotnet-tools.json

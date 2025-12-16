@@ -7,21 +7,21 @@
     DateTime today = ViewBag.Today ?? DateTime.Today;
     bool hasToday = ViewBag.HasToday ?? false;
 
-    bool canSubmit = User.IsInRole("User") || User.IsInRole("Manager");
+    bool canSubmit = User.IsInRole("User") || User.IsInRole("Manager") || User.IsInRole("Admin");
     bool canManage = User.IsInRole("Admin") || User.IsInRole("Manager");
 
     string currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    string targetUserId = ViewBag.TargetUserId as string;
 
     int? editId = Context.Request.Query.ContainsKey("editId")
         ? int.Parse(Context.Request.Query["editId"])
         : null;
 }
 
-
 @if (ViewBag.ReportOwnerName != null)
 {
     <h5 class="text-muted mb-4">
-         <strong>@ViewBag.ReportOwnerName</strong> Reports
+        <strong>@ViewBag.ReportOwnerName</strong> Reports
     </h5>
 }
 
@@ -29,40 +29,47 @@
     <table class="table table-bordered table-hover align-middle">
         <thead class="table-light">
             <tr>
-                <th style="width:140px;">Date</th>
-                <th style="width:260px;">Task</th>
-                <th>Note</th>
+                <th style="width:120px;">Date</th>
+
+                <!-- ✅ SAME WIDTH -->
+                <th style="width:320px;">Task</th>
+                <th style="width:320px;">Note</th>
+
                 <th style="width:260px;">Reviewer Comment</th>
                 <th style="width:160px;">Reported To</th>
+                <th style="width:200px;">Submitted By</th>
                 <th style="width:220px;" class="text-center">Actions</th>
             </tr>
         </thead>
 
         <tbody>
 
-            <!-- ================= SUBMIT TODAY (USER + MANAGER) ================= -->
+            <!-- ================= SUBMIT TODAY ================= -->
             @if (canSubmit && !hasToday)
             {
                 <tr class="table-success">
                     <td>
-                        @today.ToString("yyyy-MM-dd")
+                        @today.ToString("dd-MM-yyyy")
                         <span class="badge bg-success ms-1">Today</span>
                     </td>
 
+                    <!-- ✅ SAME WIDTH + HEIGHT -->
                     <td>
-                        <input form="todayForm"
-                               name="Task"
-                               class="form-control form-control-sm"
-                               placeholder="Enter task"
-                               required />
+                        <textarea form="todayForm"
+                              name="task"
+                              rows="3"
+                              class="form-control form-control-sm"
+                              placeholder="Enter task"
+                              required></textarea>
                     </td>
 
                     <td>
-                        <input form="todayForm"
-                               name="Note"
-                               class="form-control form-control-sm"
-                               placeholder="Work details / comments"
-                               required />
+                        <textarea form="todayForm"
+                              name="note"
+                              rows="3"
+                              class="form-control form-control-sm"
+                              placeholder="Work details / comments"
+                              required></textarea>
                     </td>
 
                     <td class="text-muted">—</td>
@@ -72,8 +79,9 @@
                             <input class="form-check-input"
                                    form="todayForm"
                                    type="checkbox"
-                                   name="ReportedTo"
-                                   value="Manager" />
+                                   name="reportedTo"
+                                   value="Manager"
+                                   checked />
                             <label class="form-check-label">Manager</label>
                         </div>
 
@@ -81,17 +89,22 @@
                             <input class="form-check-input"
                                    form="todayForm"
                                    type="checkbox"
-                                   name="ReportedTo"
+                                   name="reportedTo"
                                    value="Admin" />
                             <label class="form-check-label">Admin</label>
                         </div>
                     </td>
+
+                    <td class="text-muted text-center">—</td>
 
                     <td class="text-center">
                         <form id="todayForm"
                               asp-action="CreateToday"
                               method="post">
                             @Html.AntiForgeryToken()
+                            <input type="hidden"
+                                   name="targetUserId"
+                                   value="@targetUserId" />
                             <button class="btn btn-success btn-sm">
                                 Submit
                             </button>
@@ -117,56 +130,84 @@
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@r.Id" />
 
-                            <td>@r.Date.ToString("yyyy-MM-dd")</td>
+                            <td>@r.Date.ToString("dd-MM-yyyy")</td>
 
+                            <!-- ✅ SAME WIDTH + HEIGHT -->
                             <td>
-                                <input name="task"
-                                       value="@r.Task"
-                                       class="form-control form-control-sm"
-                                       required />
+                                <textarea name="task"
+                              rows="3"
+                              class="form-control form-control-sm"
+                              required>@r.Task</textarea>
                             </td>
 
                             <td>
-                                <input name="note"
-                                       value="@r.Note"
-                                       class="form-control form-control-sm"
-                                       required />
+                                <textarea name="note"
+                              rows="3"
+                              class="form-control form-control-sm"
+                              required>@r.Note</textarea>
                             </td>
 
                             <td>
-                                <input name="reviewerComment"
-                                       value="@r.ReviewerComment"
-                                       class="form-control form-control-sm"
-                                       placeholder="Reviewer comment" />
+                                <textarea name="reviewerComment"
+                              rows="2"
+                              class="form-control form-control-sm">@r.ReviewerComment</textarea>
                             </td>
 
                             <td>@r.ReportedTo</td>
 
-                            <td class="text-center">
-                                <div class="d-inline-flex gap-2">
-                                    <button class="btn btn-success btn-sm">
-                                        Save
-                                    </button>
+                            <td>
+                                <span class="badge bg-info">
+                                    Report submitted by @r.SubmittedByRole
+                                </span>
+                            </td>
 
-                                    <a asp-action="UserReports"
-                                       asp-route-userId="@r.ApplicationUserId"
-                                       class="btn btn-secondary btn-sm">
-                                        Cancel
-                                    </a>
-                                </div>
+                            <td class="text-center">
+                                <button class="btn btn-success btn-sm">
+                                    Save
+                                </button>
+                                <a asp-action="UserReports"
+                                   asp-route-userId="@r.ApplicationUserId"
+                                   class="btn btn-secondary btn-sm">
+                                    Cancel
+                                </a>
                             </td>
                             </form>
                         }
                         else
                         {
-                            <td>@r.Date.ToString("yyyy-MM-dd")</td>
-                            <td>@r.Task</td>
-                            <td>@r.Note</td>
-                            <td class="text-muted">@r.ReviewerComment</td>
+                            <td>@r.Date.ToString("dd-MM-yyyy")</td>
+
+                            <!-- ✅ SAME WIDTH + HEIGHT (READ MODE) -->
+                            <td>
+                                <textarea rows="3"
+                              class="form-control form-control-sm"
+                              readonly>@r.Task</textarea>
+                            </td>
+
+                            <td>
+                                <textarea rows="3"
+                              class="form-control form-control-sm"
+                              readonly>@r.Note</textarea>
+                            </td>
+
+                            <td>
+                                <textarea rows="2"
+                              class="form-control form-control-sm"
+                              readonly>@r.ReviewerComment</textarea>
+                            </td>
+
                             <td>@r.ReportedTo</td>
+
+                            <td>
+                                <span class="badge bg-info">
+                                    Report submitted by @r.SubmittedByRole
+                                </span>
+                            </td>
 
                             <td class="text-center">
                                 <div class="d-inline-flex gap-2">
+
+                                    <!-- ✅ DETAILS (ALL ROLES) -->
                                     <a asp-action="Details"
                                        asp-route-id="@r.Id"
                                        class="btn btn-info btn-sm">
@@ -175,6 +216,7 @@
 
                                     @if (canEditThisRow)
                                     {
+                                        <!-- ✅ EDIT -->
                                         <a asp-action="UserReports"
                                            asp-route-userId="@r.ApplicationUserId"
                                            asp-route-editId="@r.Id"
@@ -182,6 +224,7 @@
                                             Edit
                                         </a>
 
+                                        <!-- ✅ DELETE -->
                                         <form asp-action="Delete"
                                               asp-route-id="@r.Id"
                                               method="post"
@@ -195,6 +238,7 @@
                                     }
                                 </div>
                             </td>
+
                         }
                     </tr>
                 }
@@ -202,7 +246,7 @@
             else
             {
                 <tr>
-                    <td colspan="6" class="text-center text-muted py-3">
+                    <td colspan="7" class="text-center text-muted py-3">
                         No reports available.
                     </td>
                 </tr>

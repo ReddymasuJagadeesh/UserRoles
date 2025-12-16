@@ -18,6 +18,8 @@ namespace UserRoles.Models
 
         public string ReportedTo { get; set; }
 
+        public string SubmittedByRole { get; set; }
+
         // ✅ MUST EXIST
         public string? ReviewerComment { get; set; }
 

@@ -84,31 +84,55 @@ namespace UserRoles.Controllers
                 return View(model);
 
             var user = await userManager.FindByEmailAsync(model.Email);
+
+            // 🔐 Security: do not reveal user existence
             if (user == null)
-            {
-                // Security: don't reveal user existence
                 return RedirectToAction(nameof(EmailSent));
+
+            var today = DateTime.UtcNow.Date;
+
+            // 🔁 Reset counter if date changed
+            if (user.PasswordResetDate == null || user.PasswordResetDate.Value.Date != today)
+            {
+                user.PasswordResetDate = today;
+                user.PasswordResetCount = 0;
             }
 
-            // ✅ CORRECT TOKEN
-            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+            // 🚫 LIMIT CHECK
+            if (user.PasswordResetCount >= 3)
+            {
+                ModelState.AddModelError("", "You have reached the maximum of 3 password reset attempts for today.");
+                return View(model);
+            }
 
-            // ✅ URL SAFE
+            // ✅ Generate reset token
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
             var encodedToken = Uri.EscapeDataString(token);
 
             var resetLink = Url.Action(
                 "ChangePassword",
                 "Account",
                 new { email = user.Email, token = encodedToken },
-                Request.Scheme);
+                Request.Scheme
+            );
 
             await emailService.SendEmailAsync(
                 user.Email,
                 "Reset your password",
-                $"Click the link below to reset your password:\n\n{resetLink}");
+                $"Click the link below to reset your password:\n\n{resetLink}"
+            );
+
+            // 🔢 Increment usage
+            user.PasswordResetCount += 1;
+            await userManager.UpdateAsync(user);
+
+            // 📊 Show remaining attempts
+            TempData["RemainingAttempts"] = 3 - user.PasswordResetCount;
 
             return RedirectToAction(nameof(EmailSent));
         }
+
+        
 
         [HttpGet]
         public IActionResult ChangePassword(string email, string token)

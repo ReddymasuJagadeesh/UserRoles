@@ -183,10 +183,13 @@ namespace UserRoles.Migrations
                     b.Property<string>("ReviewerComment")
                         .HasColumnType("text");
 
+                    b.Property<string>("SubmittedByRole")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Task")
                         .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -234,6 +237,12 @@ namespace UserRoles.Migrations
 
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");
+
+                    b.Property<int>("PasswordResetCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("PasswordResetDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("text");
