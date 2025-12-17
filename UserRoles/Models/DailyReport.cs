@@ -6,34 +6,26 @@ namespace UserRoles.Models
 {
     public class DailyReport
     {
-        [Key]
         public int Id { get; set; }
 
         [Required]
+        public string ApplicationUserId { get; set; } = null!;
+
         [Column(TypeName = "date")]
         public DateTime Date { get; set; }
 
         [Required]
-        [StringLength(500)]
-        public string Task { get; set; } = string.Empty;
+        [MaxLength(300)]
+        public string Task { get; set; } = null!;
 
         [Required]
-        [StringLength(2000)]
-        public string Note { get; set; } = string.Empty;
+        public string Note { get; set; } = null!;
 
-        [Required]
-        [StringLength(256)]
-        public string ReportedTo { get; set; } = string.Empty;
+        public string ReportedTo { get; set; } = null!;
 
-        // 🔴 FK (MUST MATCH AspNetUsers.Id)
-        [Required]
-        public string ApplicationUserId { get; set; } = string.Empty;
+        // ✅ Admin / Manager comment
+        public string? ReviewerComment { get; set; }
 
-        // Navigation (IMPORTANT)
-        [ForeignKey(nameof(ApplicationUserId))]
-        public Users ApplicationUser { get; set; } = null!;
-
-        [Required]
         public DateTime CreatedAt { get; set; }
     }
 }

@@ -2,10 +2,9 @@
 
 @{
     ViewData["Title"] = "Edit Report";
-    bool isAdminOrManager = User.IsInRole("Admin") || User.IsInRole("Manager");
 }
 
-<h2 class="mb-3">Edit Report</h2>
+<h3 class="mb-3">Edit Report</h3>
 
 <div class="card shadow-sm">
     <div class="card-body">
@@ -13,83 +12,81 @@
         <form asp-action="Edit" method="post">
             @Html.AntiForgeryToken()
 
-            <!-- Hidden Id -->
+            <!-- Hidden Keys -->
             <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="ApplicationUserId" />
 
-            <!-- Date (Read-only to avoid accidental change) -->
+            <!-- Date (READ ONLY) -->
             <div class="mb-3">
-                <label asp-for="Date" class="form-label"></label>
-                <input asp-for="Date"
-                       class="form-control"
-                       type="date"
+                <label class="form-label">Report Date</label>
+                <input class="form-control"
+                       value="@Model.Date.ToString("yyyy-MM-dd")"
                        readonly />
             </div>
 
             <!-- Task -->
             <div class="mb-3">
                 <label asp-for="Task" class="form-label"></label>
-                <input asp-for="Task" class="form-control" />
+                <input asp-for="Task"
+                       class="form-control"
+                       required />
                 <span asp-validation-for="Task" class="text-danger"></span>
             </div>
 
-            <!-- Note -->
+            <!-- User Note -->
             <div class="mb-3">
-                <label asp-for="Note" class="form-label"></label>
+                <label asp-for="Note" class="form-label">User Note</label>
                 <textarea asp-for="Note"
                           class="form-control"
-                          rows="3"></textarea>
+                          rows="4"
+                          required></textarea>
                 <span asp-validation-for="Note" class="text-danger"></span>
             </div>
 
-            <!-- Reported To -->
+            <!-- Reviewer Comment (ADMIN / MANAGER) -->
             <div class="mb-4">
-                <label asp-for="ReportedTo" class="form-label"></label>
-                <input asp-for="ReportedTo" class="form-control" />
-                <span asp-validation-for="ReportedTo" class="text-danger"></span>
+                <label asp-for="ReviewerComment" class="form-label">
+                    Admin / Manager Comment
+                </label>
+                <textarea asp-for="ReviewerComment"
+                          class="form-control"
+                          rows="3"
+                          placeholder="Add your comment here (optional)">
+                </textarea>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="d-flex gap-2 align-items-center">
+            <!-- Reported To (optional edit) -->
+            <div class="mb-4">
+                <label asp-for="ReportedTo" class="form-label"></label>
+                <input asp-for="ReportedTo"
+                       class="form-control"
+                       placeholder="Admin, Manager" />
+            </div>
 
-                <!-- Save -->
-                <button type="submit" class="btn btn-primary">
+            <!-- ACTION BUTTONS -->
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">
                     Save Changes
                 </button>
 
-                <!-- Cancel -->
-                <a asp-action="Index"
-                   asp-controller="Reports"
+                <a asp-action="UserReports"
+                   asp-route-userId="@Model.ApplicationUserId"
                    class="btn btn-secondary">
                     Cancel
                 </a>
 
-                <!-- Spacer -->
-                <div class="flex-grow-1"></div>
-
-                <!-- Back to Reports -->
-                <a asp-action="Index"
-                   asp-controller="Reports"
-                   class="btn btn-outline-dark">
+                <a asp-action="UserReports"
+                   asp-route-userId="@Model.ApplicationUserId"
+                   class="btn btn-outline-dark ms-auto">
                     ← Back to Reports
                 </a>
-
-                <!-- Back to Users (Admin / Manager only) -->
-                @if (isAdminOrManager)
-                {
-                    <a asp-action="Users"
-                       asp-controller="Reports"
-                       class="btn btn-outline-secondary">
-                        ← Back to Users
-                    </a>
-                }
             </div>
+
         </form>
 
     </div>
 </div>
 
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
+    <partial name="_ValidationScriptsPartial" />
 }

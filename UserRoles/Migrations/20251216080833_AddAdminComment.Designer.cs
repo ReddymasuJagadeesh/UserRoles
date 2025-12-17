@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using UserRoles.Data;
@@ -11,9 +12,11 @@ using UserRoles.Data;
 namespace UserRoles.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251216080833_AddAdminComment")]
+    partial class AddAdminComment
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -162,6 +165,9 @@ namespace UserRoles.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AdminComment")
+                        .HasColumnType("text");
+
                     b.Property<string>("ApplicationUserId")
                         .IsRequired()
                         .HasColumnType("text");
@@ -180,13 +186,9 @@ namespace UserRoles.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("ReviewerComment")
-                        .HasColumnType("text");
-
                     b.Property<string>("Task")
                         .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -312,6 +314,17 @@ namespace UserRoles.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("UserRoles.Models.DailyReport", b =>
+                {
+                    b.HasOne("UserRoles.Models.Users", "ApplicationUser")
+                        .WithMany()
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApplicationUser");
                 });
 #pragma warning restore 612, 618
         }

@@ -4,10 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UserRoles.Data;
 using UserRoles.Models;
-using UserRoles.ViewModels;
 
 namespace UserRoles.Controllers
 {
+    [Authorize]
     [Authorize]
     public class ReportsController : Controller
     {
@@ -20,16 +20,24 @@ namespace UserRoles.Controllers
             _userManager = userManager;
         }
 
+        /* ================= ENTRY POINT ================= */
+        [HttpGet]
         public IActionResult Index()
         {
+            // Admin / Manager → Users list
             if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+            {
                 return RedirectToAction("Index", "Users");
+            }
 
-            return RedirectToAction(nameof(UserReports),
-                new { userId = _userManager.GetUserId(User) });
+            // User → Own reports
+            var userId = _userManager.GetUserId(User);
+            return RedirectToAction(nameof(UserReports), new { userId });
         }
 
+        /* ================= USER REPORTS ================= */
         [Authorize(Roles = "Admin,Manager,User")]
+        [HttpGet]
         public async Task<IActionResult> UserReports(string userId)
         {
             var currentUserId = _userManager.GetUserId(User);
@@ -37,20 +45,23 @@ namespace UserRoles.Controllers
             if (User.IsInRole("User") && userId != currentUserId)
                 return Forbid();
 
-            var today = DateTime.Today;
-
             var reports = await _context.DailyReports
                 .Where(r => r.ApplicationUserId == userId)
                 .OrderByDescending(r => r.Date)
                 .ThenByDescending(r => r.CreatedAt)
                 .ToListAsync();
 
+            var today = DateTime.Today;
+
             ViewBag.Today = today;
-            ViewBag.HasToday = reports.Any(r => r.Date == today);
+            ViewBag.HasTodayReport = reports.Any(r => r.Date == today);
 
             return View(reports);
         }
 
+
+
+        /* ================= CREATE (USER ONLY) ================= */
         [Authorize(Roles = "User")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -65,8 +76,8 @@ namespace UserRoles.Controllers
                 return RedirectToAction(nameof(UserReports), new { userId });
             }
 
-            bool exists = await _context.DailyReports
-                .AnyAsync(r => r.ApplicationUserId == userId && r.Date == today);
+            bool exists = await _context.DailyReports.AnyAsync(r =>
+                r.ApplicationUserId == userId && r.Date == today);
 
             if (exists)
             {
@@ -78,8 +89,8 @@ namespace UserRoles.Controllers
             {
                 ApplicationUserId = userId,
                 Date = today,
-                Task = Task.Trim(),
-                Note = Note.Trim(),
+                Task = Task,
+                Note = Note,
                 ReportedTo = string.Join(", ", ReportedTo),
                 CreatedAt = DateTime.UtcNow
             };
@@ -90,11 +101,16 @@ namespace UserRoles.Controllers
             return RedirectToAction(nameof(UserReports), new { userId });
         }
 
+        /* ================= EDIT (ADMIN / MANAGER) ================= */
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Edit(int id)
         {
-            var report = await _context.DailyReports.FindAsync(id);
-            return report == null ? NotFound() : View(report);
+            var report = await _context.DailyReports
+                .Include(r => r.ApplicationUser)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (report == null) return NotFound();
+            return View(report);
         }
 
         [Authorize(Roles = "Admin,Manager")]
@@ -107,14 +123,13 @@ namespace UserRoles.Controllers
 
             report.Task = model.Task;
             report.Note = model.Note;
-            report.ReviewerComment = model.ReviewerComment;
+            report.AdminComment = model.AdminComment;
 
             await _context.SaveChangesAsync();
-
-            return RedirectToAction(nameof(UserReports),
-                new { userId = report.ApplicationUserId });
+            return RedirectToAction(nameof(UserReports), new { userId = report.ApplicationUserId });
         }
 
+        /* ================= DELETE (ADMIN / MANAGER) ================= */
         [Authorize(Roles = "Admin,Manager")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -123,12 +138,10 @@ namespace UserRoles.Controllers
             var report = await _context.DailyReports.FindAsync(id);
             if (report == null) return NotFound();
 
-            var userId = report.ApplicationUserId;
-
             _context.DailyReports.Remove(report);
             await _context.SaveChangesAsync();
 
-            return RedirectToAction(nameof(UserReports), new { userId });
+            return RedirectToAction(nameof(UserReports), new { userId = report.ApplicationUserId });
         }
     }
 }
